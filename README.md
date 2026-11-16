@@ -25,12 +25,13 @@ npm run preview  # serve the production build
 
 ## Publish with GitHub Pages
 
-The repo includes `.github/workflows/deploy.yml`, which runs the typecheck/build and publishes `dist`.
+The repo includes `.github/workflows/deploy.yml`, which runs the typecheck/build, enables Pages on the first run, and publishes `dist`.
 
 1. Create a GitHub repository and push this project to `main`.
-2. In the repo: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-3. Push to `main` (or run **Actions → Deploy to GitHub Pages → Run workflow**).
-4. Open `https://<your-user>.github.io/<your-repo>/`.
+2. The workflow deploys automatically. You can also trigger it from **Actions → Deploy to GitHub Pages → Run workflow**.
+3. Open `https://<your-user>.github.io/<your-repo>/`.
+
+To manage the source manually, use **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 
 Vite uses `base: './'`, so the build works at the repository subpath without extra configuration.
 
