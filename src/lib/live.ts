@@ -23,18 +23,50 @@ export interface LiveHome {
   listedDate?: string;
 }
 
-async function request(url: string, init?: RequestInit): Promise<unknown> {
+interface RequestMeta {
+  provider: string;
+  dashboard: string;
+  secret?: string;
+}
+
+function errorDetail(body: string, secret?: string): string {
+  let detail = '';
+  try {
+    const parsed = record(JSON.parse(body));
+    detail = text(parsed.message) || text(parsed.error);
+  } catch {
+    detail = body;
+  }
+  detail = detail.replace(/\s+/g, ' ').trim();
+  if (secret) detail = detail.split(secret).join('***');
+  return detail.slice(0, 200);
+}
+
+function cleanKey(value: string): string {
+  return value.replace(/^\s*bearer\s+/i, '').replace(/\s+/g, '');
+}
+
+async function request(url: string, init?: RequestInit, meta: RequestMeta = { provider: 'The API', dashboard: '' }): Promise<unknown> {
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), 20_000);
   try {
     const response = await fetch(url, { ...init, signal: controller.signal });
     if (!response.ok) {
       const body = await response.text().catch(() => '');
-      if (response.status === 401 || response.status === 403) {
-        throw new Error('The API rejected the credential (401/403). Check the key and its permissions.');
+      const detail = errorDetail(body, meta.secret);
+      const tail = detail ? ` ${meta.provider} says: “${detail}”` : '';
+      if (response.status === 401) {
+        throw new Error(
+          `${meta.provider} rejected the API key (401). Re-copy it from ${meta.dashboard} with no spaces or line breaks, and confirm the key was not revoked.${tail}`,
+        );
       }
-      if (response.status === 429) throw new Error('Rate limit hit. Wait a bit or lower your query volume.');
-      throw new Error(`Request failed (${response.status}). ${body.slice(0, 160)}`);
+      if (response.status === 403) {
+        throw new Error(
+          `${meta.provider} refused the request (403). Check the key’s IP/endpoint restrictions and confirm an API plan is active with no billing problems.${tail}`,
+        );
+      }
+      if (response.status === 429) throw new Error(`${meta.provider} rate limit hit (429). Wait a moment or lower your query volume.${tail}`);
+      throw new Error(`${meta.provider} request failed (${response.status}).${tail}`);
     }
     return (await response.json()) as unknown;
   } catch (error) {
@@ -67,16 +99,24 @@ export async function fetchAdzunaJobs(opts: {
   where: string;
   remoteOnly: boolean;
 }): Promise<LiveJob[]> {
+  const appId = cleanKey(opts.appId);
+  const appKey = cleanKey(opts.appKey);
   const params = new URLSearchParams({
-    app_id: opts.appId.trim(),
-    app_key: opts.appKey.trim(),
+    app_id: appId,
+    app_key: appKey,
     results_per_page: '24',
     what: opts.what.trim() || 'product manager',
   });
   if (opts.where.trim()) params.set('where', opts.where.trim());
   if (opts.remoteOnly) params.set('what_and', 'remote');
   const url = `https://api.adzuna.com/v1/api/jobs/us/search/1?${params.toString()}`;
-  const data = record(await request(url));
+  const data = record(
+    await request(url, undefined, {
+      provider: 'Adzuna',
+      dashboard: 'https://developer.adzuna.com/',
+      secret: appKey,
+    }),
+  );
   const results = Array.isArray(data.results) ? data.results : [];
   return results
     .map((raw): LiveJob | null => {
@@ -110,9 +150,12 @@ export async function fetchRentcast(opts: {
   if (opts.beds) params.set('bedrooms', opts.beds);
   if (opts.minRent) params.set('minPrice', opts.minRent);
   if (opts.maxRent) params.set('maxPrice', opts.maxRent);
-  const data = await request(`https://api.rentcast.io/v1/listings/rental/long-term?${params.toString()}`, {
-    headers: { 'X-Api-Key': opts.key.trim() },
-  });
+  const key = cleanKey(opts.key);
+  const data = await request(
+    `https://api.rentcast.io/v1/listings/rental/long-term?${params.toString()}`,
+    { headers: { 'X-Api-Key': key } },
+    { provider: 'Rentcast', dashboard: 'https://app.rentcast.io/app/api', secret: key },
+  );
   const rows = Array.isArray(data) ? data : [];
   return rows
     .map((raw): LiveHome | null => {

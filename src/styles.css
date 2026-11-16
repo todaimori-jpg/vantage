@@ -2741,6 +2741,13 @@ select {
   margin-top: 10px;
 }
 
+.integration__hint {
+  margin-top: 8px;
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--faint);
+}
+
 .conn {
   font-family: var(--mono);
   font-size: 10px;

@@ -272,6 +272,10 @@ export function SettingsView() {
               </button>
               {rentcast.message ? <span className={`conn conn--${rentcast.status}`}>{rentcast.message}</span> : null}
             </div>
+            <p className="integration__hint">
+              Use a key from the API dashboard (not the property app). A 403 means the key is restricted or the API plan/billing is
+              inactive; a 401 means the key is wrong or revoked. Each test spends one API request.
+            </p>
           </div>
 
           <p className="notice">

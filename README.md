@@ -45,6 +45,7 @@ Vite uses `base: './'`, so the build works at the repository subpath without ext
 
 - State lives under the `vantage.state.v1` key in this browser. Nothing is sent to a server.
 - API keys are stored locally and are only used for direct calls to Adzuna or Rentcast.
+- Rentcast keys come from the **API dashboard** (<https://app.rentcast.io/app/api>), not the property app. A `401` means the key is invalid or revoked; a `403` means the key has IP/endpoint restrictions or the API plan/billing is inactive.
 - **Back up before clearing site data.** Settings → export JSON writes a snapshot; import restores it after confirmation.
 - On a public deployment, only use your own personal API keys. Never paste a shared or company-wide key into a site you do not control.
 
